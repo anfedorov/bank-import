@@ -1,10 +1,7 @@
 import time
-from datetime import datetime
-from itertools import starmap
-import re
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+# from selenium.webdriver.common.keys import Keys
 
 
 class Browser(object):
@@ -51,10 +48,14 @@ class Tab(object):
       return ret
     return wrapped
 
+  @property
+  def title(self):
+    return self.browser.driver.title
+
   def __repr__(self):
     wh = self.browser.driver.current_window_handle
     self.browser.switch_to_window(self.window_handle)
-    title = self.browser.driver.title
+    title = self.title
     wh = self.browser.switch_to_window(wh)
     return '<Tab %s>' % title
 
@@ -86,13 +87,16 @@ class Tab(object):
       if time.time() > (start + timeout):
         return []
 
+  def find_el_xp(self, xp):
+    return self.browser.driver.find_element_by_xpath(xp)
+
   @_switch_tab_temporarily
-  def find_link(self, text, timeout=3):
-    finder = lambda: self.browser.driver.find_elements_by_link_text(text)
+  def find_link(self, text, n=0, timeout=3):
+    finder = lambda: self.browser.driver.find_elements_by_partial_link_text(text)
     es = self.find_elems(finder, timeout=timeout)
     if len(es) > 1:
       print 'warning: more than one link found with text="%s"' % text
-    return es and es[0]
+    return es and es[n]
 
   @_switch_tab_temporarily
   def find_button(self, text, button_type=None, timeout=3):
@@ -100,7 +104,7 @@ class Tab(object):
     if button_type is not None:
       xp += '[@type="%s"]' % button_type
     finder = lambda: self.browser.driver.find_elements_by_xpath(xp)
-    es = [e for e in self.find_elems(finder, timeout=timeout) if e.text == text]
+    es = [e for e in self.find_elems(finder, timeout=timeout) if text in e.text]
     if len(es) > 1:
       print 'warning: more than one link found with text="%s"' % text
     return es and es[0]
@@ -109,10 +113,16 @@ class Tab(object):
   def find_input(self, name_or_elem):
     if isinstance(name_or_elem, basestring):
       xp = '//*/input[@name="%s"]' % name_or_elem
-      elem = self.browser.driver.find_element_by_xpath(xp)
+      es = [e for e in self.browser.driver.find_elements_by_xpath(xp) if e.is_displayed()]
+      elem = (es + [None])[0]
+
     else:
       elem = name_or_elem
-    return Input(self, elem)
+
+    if elem.get_attribute('type') == 'checkbox':
+      return Checkbox(self, elem)
+    else:
+      return Input(self, elem)
 
 
 class Input(object):
@@ -123,12 +133,38 @@ class Input(object):
   def __repr__(self):
     return '<Input %s>' % self.elem
 
+  def click(self):
+    self.elem.click()
+
   def fill(self, text):
-    while len(text) > 0:
-      l = len(self.elem.get_attribute('value'))
-      self.elem.send_keys(text[0])
-      chars_added = len(self.elem.get_attribute('value')) - l
-      text = text[chars_added:]
+    while 1:
+      v = self.elem.get_attribute('value')
+      if text == v:
+        return
+      elif text.startswith(v):
+        self.elem.send_keys(text[len(v):][0])
+      else:
+        self.elem.send_keys(u'\x08')
+
+      # l = len(self.elem.get_attribute('value'))
+      # self.elem.send_keys(text[0])
+      # chars_added = len(self.elem.get_attribute('value')) - l
+      # text = text[chars_added:]
+
+
+
+class Checkbox(Input):
+  def check(self):
+    if not self.checked:
+      self.elem.click()
+
+  def uncheck(self):
+    if self.checked:
+      self.elem.click()
+
+  @property
+  def checked(self):
+    return self.elem.get_attribute('checked') == 'true'
 
 
 class Elem(object):
@@ -139,6 +175,11 @@ class Elem(object):
   def click(self):
     return self.elem.click()
 
+  def center_position(self):
+    raise NotImplemented()
+
+
+
 
 class Link(Elem):
   def __repr__(self):
@@ -148,3 +189,5 @@ class Button(Elem):
   def __repr__(self):
     return '<Button %s>' % self.elem
 
+class Site(object):
+  pass
