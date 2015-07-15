@@ -6,8 +6,8 @@ from banking import BankingSite
 
 
 class AmexSite(BankingSite):
-  def __init__(self, headless=False):
-    self.b = chrome.Browser(headless=headless)
+  def __init__(self):
+    self.b = chrome.Browser()
     self.b.get('https://www.americanexpress.com/')
     self.t = self.b.tabs[0]
 
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     import passwords
     import json
     from banking import Transaction
-    a = AmexSite(headless=True)
+    a = AmexSite()
     a.login(passwords.logins['amex'])
     a.goto('statements')
 

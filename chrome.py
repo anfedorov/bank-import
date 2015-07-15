@@ -7,14 +7,9 @@ from selenium import webdriver
 class Browser(object):
   Tabs = None
 
-  def __init__(self, url=None, cookies=None, headless=False):
+  def __init__(self, url=None, cookies=None):
     options = webdriver.ChromeOptions()
     options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
-
-    if headless:
-      from pyvirtualdisplay import Display
-      display = Display(visible=0, size=(800, 600))
-      display.start()
 
     self.driver = webdriver.Chrome(chrome_options=options)
 
