@@ -7,11 +7,28 @@ from selenium import webdriver
 class Browser(object):
   Tabs = None
 
-  def __init__(self):
+  def __init__(self, url=None, cookies=None, headless=False):
     options = webdriver.ChromeOptions()
     options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
+
+    if headless:
+      from pyvirtualdisplay import Display
+      display = Display(visible=0, size=(800, 600))
+      display.start()
+
     self.driver = webdriver.Chrome(chrome_options=options)
+
+    if url is not None:
+      self.get(url)
+
+    if cookies is not None:
+      for c in cookies:
+        self.driver.add_cookie(c)
+
     self.driver.implicitly_wait(30)
+
+  def get_cookies(self):
+    return self.driver.get_cookies()
 
   def switch_to_window(self, wh):
     if self.driver.current_window_handle != wh:
@@ -90,6 +107,9 @@ class Tab(object):
   def find_el_xp(self, xp):
     return self.browser.driver.find_element_by_xpath(xp)
 
+  def find_elems_xp(self, xp):
+    return self.browser.driver.find_elements_by_xpath(xp)
+
   @_switch_tab_temporarily
   def find_link(self, text, n=0, timeout=3):
     finder = lambda: self.browser.driver.find_elements_by_partial_link_text(text)
@@ -125,16 +145,29 @@ class Tab(object):
       return Input(self, elem)
 
 
-class Input(object):
+class Elem(object):
+  def __init__(self, tab, elem):
+    self.tab = tab
+    self.elem = elem
+
+  def click(self):
+    ret = self.elem.click()
+    if hasattr(self, 'driver'):
+      self.driver.implicitly_wait(30)
+    return ret
+
+
+  def center_position(self):
+    raise NotImplemented()
+
+
+class Input(Elem):
   def __init__(self, tab, elem):
     self.tab = tab
     self.elem = elem
 
   def __repr__(self):
     return '<Input %s>' % self.elem
-
-  def click(self):
-    self.elem.click()
 
   def fill(self, text):
     while 1:
@@ -165,19 +198,6 @@ class Checkbox(Input):
   @property
   def checked(self):
     return self.elem.get_attribute('checked') == 'true'
-
-
-class Elem(object):
-  def __init__(self, tab, elem):
-    self.tab = tab
-    self.elem = elem
-
-  def click(self):
-    return self.elem.click()
-
-  def center_position(self):
-    raise NotImplemented()
-
 
 
 
