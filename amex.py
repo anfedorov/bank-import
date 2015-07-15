@@ -2,10 +2,10 @@ from dateutil import parser
 
 import chrome
 import utils
-from banking import BankingSite
+from banking import BankingSite, Transaction
 
 
-class AmexSite(BankingSite):
+class Site(BankingSite):
   def __init__(self):
     self.b = chrome.Browser()
     self.b.get('https://www.americanexpress.com/')
@@ -21,7 +21,7 @@ class AmexSite(BankingSite):
   @property
   def page(self):
     if self.b.driver.title.endswith('Online Statement'):
-      return Statements(self.t)
+      return 'statements'
     else:
       return None
 
@@ -29,56 +29,12 @@ class AmexSite(BankingSite):
     if page == 'statements':
       self.t.find_link('Statements & Activity').click()
 
-
-class Page(object):
-  # todo - method for reading table into list of dicts
-  def __init__(self, t):
-    self.t = t
-
-
-class Statements(Page):
-  def __repr__(self):
-    return '<Statements>'
-
   @property
-  def available_periods(self):
-    from banking import Period
-    b = self.t.find_button('Recent Activity')
-    b.click()
-    ps = self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "periodListDescription")]')
-
-    ret = [[False]]
-    while not all(all(x) for x in ret):
-      ret = [p.text.split(' to ') for p in ps]
-
-    for i, x in enumerate(ret):
-      start = None
-      end = None
-      if len(x) == 1:
-        if x[0].lower().startswith('period ending '):
-          end = parser.parse(x[14:])
-        else:
-          print "I don't even '%s'" % x[0]
-
-      elif len(x) == 2:
-        start, end = x
-        start = parser.parse(start)
-        if end == 'Present':
-          end = None
-        else:
-          end = parser.parse(end)
-
-      else:
-        print "I don't even '%s'" % x
-
-      ret[i] = Period(start, end)
-
-    b.click()
-    return ret
+  def balance(self):
+    xp = '//span[contains(text(), "Outstanding Balance")]/following-sibling::span'
+    return utils.parse_dols(self.t.find_el_xp(xp).text)
 
   def get_transactions(self, pending=False):
-    from banking import Transaction
-
     if pending:
       self.t.find_button('Pending Charges').click()
     else:
@@ -105,40 +61,43 @@ class Statements(Page):
     ]
 
 
-if __name__ == '__main__':
-  import argparse
+# class Statements(Page):
+#   def __repr__(self):
+#     return '<Statements>'
 
-  p = argparse.ArgumentParser(description='Get some datums.')
+#   @property
+#   def available_periods(self):
+#     # todo - fix this
+#     from banking import Period
+#     b = self.t.find_button('Recent Activity')
+#     b.click()
+#     ps = self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "periodListDescription")]')
 
-  p.add_argument('action', type=str, help='what do we do')
+#     ret = [[False]]
+#     while not all(all(x) for x in ret):
+#       ret = [p.text.split(' to ') for p in ps]
 
-  # p.add_argument('--latest-tx', dest='latest_tx',
-  #                               action='store_true',
-  #                               default=False,
-  #                               help='quick import')
+#     for i, x in enumerate(ret):
+#       start = None
+#       end = None
+#       if len(x) == 1:
+#         if x[0].lower().startswith('period ending '):
+#           end = parser.parse(x[14:])
+#         else:
+#           print "I don't even '%s'" % x[0]
 
-  args = p.parse_args()
+#       elif len(x) == 2:
+#         start, end = x
+#         start = parser.parse(start)
+#         if end == 'Present':
+#           end = None
+#         else:
+#           end = parser.parse(end)
 
-  if args.action == 'get-latest':
-    import passwords
-    import json
-    from banking import Transaction
-    a = AmexSite()
-    a.login(passwords.logins['amex'])
-    a.goto('statements')
+#       else:
+#         print "I don't even '%s'" % x
 
-    out = {}
+#       ret[i] = Period(start, end)
 
-    out['pending'] = [
-      dict(zip(Transaction._fields, tx))
-        for tx in a.page.get_transactions(pending=True)
-    ]
-
-    out['posted'] = [
-      dict(zip(Transaction._fields, tx))
-        for tx in a.page.get_transactions(pending=False)
-    ]
-
-    print json.dumps(out, indent=2)
-
-    # print a.page.available_periods
+#     b.click()
+#     return ret
