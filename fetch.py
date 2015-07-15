@@ -20,12 +20,12 @@ try:
   login = passwords.logins[args.service]
 
 except:
-  if not (args.user and args.password):
+  if not (args.u and args.p):
     import sys
     sys.stderr.write('passwords.py or (-u and -p args) are required')
     sys.exit(1)
 
-  login = Login(args.user, args.password)
+  login = Login(args.u, args.p)
 
 lib = importlib.import_module(args.service)
 
