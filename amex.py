@@ -1,12 +1,13 @@
 from dateutil import parser
 
 import chrome
+import utils
 from banking import BankingSite
 
 
 class AmexSite(BankingSite):
-  def __init__(self):
-    self.b = chrome.Browser()
+  def __init__(self, headless=False):
+    self.b = chrome.Browser(headless=headless)
     self.b.get('https://www.americanexpress.com/')
     self.t = self.b.tabs[0]
 
@@ -75,11 +76,15 @@ class Statements(Page):
     b.click()
     return ret
 
-  @property
-  def transactions(self):
+  def get_transactions(self, pending=False):
     from banking import Transaction
 
-    dates = [parser.parse(' '.join([x.text for x in xs])) for xs in zip(
+    if pending:
+      self.t.find_button('Pending Charges').click()
+    else:
+      self.t.find_button('Posted Transactions').click()
+
+    dates = [parser.parse(' '.join([x.text for x in xs])).isoformat() for xs in zip(
       self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "estmt-date")]'),
       self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "estmt-month")]'),
       self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "estmt-year")]')
@@ -89,11 +94,15 @@ class Statements(Page):
       self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "desc-trans")]')
     ]
 
-    amounts = [float(x.text.replace('$', '')) for x in
-      self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "amountPos")]')
+    amounts = [utils.parse_dols(x.text) for x in
+      self.t.browser.driver.find_elements_by_xpath('//*[contains(@class, "colAmount")]')
     ]
 
-    return [Transaction(*x) for x in zip(dates, descs, amounts)]
+    return [
+      Transaction(dt, desc, '', amt, not pending)
+        for dt, desc, amt in zip(dates, descs, amounts)
+          if amt > 0
+    ]
 
 
 if __name__ == '__main__':
@@ -112,8 +121,24 @@ if __name__ == '__main__':
 
   if args.action == 'get-latest':
     import passwords
-    a = AmexSite()
+    import json
+    from banking import Transaction
+    a = AmexSite(headless=True)
     a.login(passwords.logins['amex'])
     a.goto('statements')
-    print a.page.transactions
-    print a.page.available_periods
+
+    out = {}
+
+    out['pending'] = [
+      dict(zip(Transaction._fields, tx))
+        for tx in a.page.get_transactions(pending=True)
+    ]
+
+    out['posted'] = [
+      dict(zip(Transaction._fields, tx))
+        for tx in a.page.get_transactions(pending=False)
+    ]
+
+    print json.dumps(out, indent=2)
+
+    # print a.page.available_periods
