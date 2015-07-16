@@ -9,10 +9,9 @@ def parse_dols(s):
 
 def run_bash(s):
   import subprocess
-  process = subprocess.Popen(s.split(), stdout=subprocess.PIPE, shell=True)
-  output = process.communicate()[0]
-  return output
-
+  subprocess.Popen(s.split(), stdout=subprocess.PIPE, shell=True)
+  # process = subprocess.Popen(s.split(), stdout=subprocess.PIPE, shell=True)
+  return
 
 SCREEN = False
 def take_screenshot(label, save_path='/tmp/shots'):
