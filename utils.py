@@ -6,3 +6,18 @@ def parse_dols(s):
   except:
     return None
 
+
+def run_bash(s):
+  import subprocess
+  process = subprocess.Popen(s.split(), stdout=subprocess.PIPE)
+  output = process.communicate()[0]
+  return output
+
+
+SCREEN = False
+def take_screenshot(label, save_path='/tmp'):
+  if SCREEN:
+    from datetime import datetime
+    fname = 'screenshot-%s-%s.jpg' % (datetime.now().isoformat(), label)
+    path = '%s/%s' % (save_path, fname)
+    return run_bash('xwd -root -silent | xwdtopnm |pnmtojpeg > %s' % path)

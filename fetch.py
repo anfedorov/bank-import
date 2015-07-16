@@ -5,6 +5,7 @@ import argparse
 import json
 import importlib
 
+import utils
 from banking import Login
 
 p = argparse.ArgumentParser(description='Get some datums.')
@@ -12,8 +13,11 @@ p = argparse.ArgumentParser(description='Get some datums.')
 p.add_argument('service', type=str, help='where to get it')
 p.add_argument('-u')
 p.add_argument('-p')
+p.add_argument('-s', action='store_true')
+
 
 args = p.parse_args()
+utils.SCREEN = args.s
 
 try:
   import passwords
@@ -32,8 +36,11 @@ lib = importlib.import_module(args.service)
 out = {}
 
 a = lib.Site()
+utils.take_screenshot('site-loaded')
+
 a.login(login)
 
+utils.take_screenshot('login-done')
 a.goto('statements')
 
 out['balance'] = a.balance
