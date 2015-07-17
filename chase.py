@@ -1,16 +1,12 @@
 # from dateutil import parser
 
-import chrome
-
 import utils
 from banking import BankingSite, Transaction
 
 
 class Site(BankingSite):
   def __init__(self):
-    self.b = chrome.Browser()
-    self.b.get('https://www.chase.com/')
-    self.t = self.b.tabs[0]
+    BankingSite.__init__(self, 'https://www.chase.com')
 
   def login(self, login_data):
     self.t.find_input('usr_name').fill(login_data.user)

@@ -1,15 +1,12 @@
 from dateutil import parser
 
-import chrome
 import utils
 from banking import BankingSite, Transaction
 
 
 class Site(BankingSite):
   def __init__(self):
-    self.b = chrome.Browser()
-    self.b.get('https://www.americanexpress.com/')
-    self.t = self.b.tabs[0]
+    BankingSite.__init__(self, 'https://www.americanexpress.com/')
 
   def login(self, login):
     # add check if already logged in
