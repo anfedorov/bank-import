@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from chrome import Site
+from chrome import Site, Browser
 
 Login = namedtuple('Login', ['user', 'pswd'])
 
@@ -13,5 +13,17 @@ Period = namedtuple('TranscationPeriod', ['start', 'end'])
 
 
 class BankingSite(Site):
+  def __init__(self, url):
+    self.url = url
+
+  def __enter__(self):
+    self.b = Browser()
+    self.b.get(self.url)
+    self.t = self.b.tabs[0]
+    return self
+
+  def __exit__(self, type, value, traceback):
+    self.b.close()
+
   def login(self, login_info):
     raise NotImplementedError()

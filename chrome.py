@@ -32,6 +32,9 @@ class Browser(object):
   def get(self, url):
     self.driver.get(url)
 
+  def close(self):
+    self.driver.close()
+
   def __repr__(self):
     return '<Browser (%s tabs)>' % len(self.tabs)
 
@@ -120,9 +123,14 @@ class Tab(object):
       xp += '[@type="%s"]' % button_type
     finder = lambda: self.browser.driver.find_elements_by_xpath(xp)
     es = [e for e in self.find_elems(finder, timeout=timeout) if text in e.text]
+
     if len(es) > 1:
       print 'warning: more than one link found with text="%s"' % text
-    return es and es[0]
+
+    if len(es) > 0:
+      return es[0]
+
+    return None
 
   @_switch_tab_temporarily
   def find_input(self, name_or_elem):

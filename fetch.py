@@ -35,25 +35,25 @@ lib = importlib.import_module(args.service)
 
 out = {}
 
-a = lib.Site()
-utils.take_screenshot('site-loaded')
+with lib.Site() as a:
+  utils.take_screenshot('site-loaded')
 
-a.login(login)
+  a.login(login)
 
-utils.take_screenshot('login-done')
-a.goto('statements')
+  utils.take_screenshot('login-done')
+  a.goto('statements')
 
-out['balance'] = a.balance
+  out['balance'] = a.balance
 
-out['pending'] = [
-  dict(zip(Transaction._fields, tx))
-    for tx in a.get_transactions(pending=True)
-]
+  out['pending'] = [
+    dict(zip(Transaction._fields, tx))
+      for tx in a.get_transactions(pending=True)
+  ]
 
-out['posted'] = [
-  dict(zip(Transaction._fields, tx))
-    for tx in a.get_transactions(pending=False)
-]
+  out['posted'] = [
+    dict(zip(Transaction._fields, tx))
+      for tx in a.get_transactions(pending=False)
+  ]
 
-print json.dumps(out, indent=2)
+  print json.dumps(out, indent=2)
 
